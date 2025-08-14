@@ -61,23 +61,82 @@ EXPO_PUBLIC_WIREGUARD_SERVER_ENDPOINT=your_domain:51820
 
 ### 4. Start Development Server
 
+#### Option A: Expo Go (Recommended for development)
+
+```bash
+npm run start:go
+```
+
+Then scan the QR code with Expo Go app on your device.
+
+#### Option B: Development Build (For native features)
+
+```bash
+npm run start:dev-build
+```
+
+Then scan the QR code with your development build app.
+
+#### Option C: Auto-detect
+
 ```bash
 npm start
 ```
 
 ## 📱 Running the App
 
-### iOS
+### Development Builds
+
+First, you'll need to build development builds:
+
+#### Android Development Build
+
+```bash
+# Build on EAS servers (recommended)
+npm run build:dev:android
+
+# Build locally (requires Android setup)
+npm run install:dev:android
+```
+
+#### iOS Development Build
+
+```bash
+# Build on EAS servers (recommended)
+npm run build:dev:ios
+
+# Build locally (requires Xcode)
+npm run install:dev:ios
+```
+
+### Running on Simulators/Devices
+
+#### iOS
 
 ```bash
 npm run ios
 ```
 
-### Android
+#### Android
 
 ```bash
 npm run android
 ```
+
+### Development Build vs Expo Go
+
+**Use Expo Go when:**
+
+- Rapid prototyping and development
+- Testing basic functionality
+- No custom native modules required
+
+**Use Development Build when:**
+
+- Testing native modules and custom code
+- Better debugging experience
+- Testing production-like behavior
+- Custom native code integration
 
 ### Web (for testing)
 

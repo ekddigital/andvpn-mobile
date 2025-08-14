@@ -18,7 +18,10 @@
         "ios": {
             "supportsTablet": true,
             "bundleIdentifier": "com.andgroupco.andvpn",
-            "buildNumber": "1"
+            "buildNumber": "1",
+            "infoPlist": {
+                "ITSAppUsesNonExemptEncryption": false
+            }
         },
         "android": {
             "adaptiveIcon": {
@@ -42,8 +45,9 @@
             "typedRoutes": true
         },
         "extra": {
+            "router": {},
             "eas": {
-                "projectId": "your-project-id-here"
+                "projectId": "ad5c4fa2-6e83-448c-b070-060fc5e02a09"
             }
         },
         "plugins": [
@@ -52,6 +56,10 @@
             "expo-router",
             "expo-secure-store"
         ],
-        "runtimeVersion": "1.0.0"
+        "runtimeVersion": "1.0.0",
+        "owner": "ekd001",
+        "cli": {
+            "appVersionSource": "local"
+        }
     }
 }
