@@ -8,6 +8,7 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+.expo-shared/
 
 # Native
 .kotlin/
@@ -31,7 +32,39 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+.env.production
+.env.development
+.env.test
 
 # typescript
 *.tsbuildinfo
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Keys and certificates
+google-services.json
+GoogleService-Info.plist
+
+# Logs
+logs/
+*.log
+
+# Production builds
+build/
+
+# Temporary files
+*.tmp
+*.temp

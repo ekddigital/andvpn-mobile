@@ -1,20 +1,88 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React from "react";
+import { StatusBar } from "expo-status-bar";
+import { StyleSheet, View, ScrollView } from "react-native";
+import { ClerkProvider } from "@clerk/clerk-expo";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import * as SecureStore from "expo-secure-store";
+
+import { AUTH_CONFIG } from "./src/lib/constants";
+import { VPNConnection } from "./src/components/vpn/VPNConnection";
+
+// Create a token cache for Clerk
+const tokenCache = {
+  async getToken(key: string) {
+    try {
+      return await SecureStore.getItemAsync(key);
+    } catch (err) {
+      console.error("SecureStore get item error: ", err);
+      return null;
+    }
+  },
+  async saveToken(key: string, value: string) {
+    try {
+      await SecureStore.setItemAsync(key, value);
+    } catch (err) {
+      console.error("SecureStore save item error: ", err);
+    }
+  },
+};
+
+// Create React Query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 export default function App() {
+  const handleConnect = async (serverId: string, protocol: string) => {
+    console.log(`Connecting to ${serverId} using ${protocol}`);
+    // TODO: Implement actual VPN connection logic
+    // This will integrate with your VPN API
+  };
+
+  const handleDisconnect = async () => {
+    console.log("Disconnecting VPN");
+    // TODO: Implement VPN disconnection logic
+  };
+
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <ClerkProvider
+      publishableKey={AUTH_CONFIG.clerkPublishableKey}
+      tokenCache={tokenCache}
+    >
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <SafeAreaView style={styles.container}>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <VPNConnection
+                onConnect={handleConnect}
+                onDisconnect={handleDisconnect}
+              />
+            </ScrollView>
+            <StatusBar style="auto" />
+          </SafeAreaView>
+        </SafeAreaProvider>
+      </QueryClientProvider>
+    </ClerkProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#fff",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingVertical: 50,
   },
 });

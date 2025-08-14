@@ -1,0 +1,6 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Clean shield without text -->
+    <path
+        d="M128 16L32 64V120C32 179.648 72.832 230.976 128 240C183.168 230.976 224 179.648 224 120V64L128 16Z"
+        fill="#2563eb" stroke="#1d4ed8" stroke-width="4" />
+</svg>
