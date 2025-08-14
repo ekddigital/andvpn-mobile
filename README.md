@@ -17,6 +17,7 @@ A robust React Native Expo mobile application for AndVPN - Advanced WireGuard Ma
 
 - Node.js 18+
 - Expo CLI (`npm install -g @expo/cli`)
+- EAS CLI (`npm install -g eas-cli`)
 - iOS Simulator (for iOS development)
 - Android Studio/Emulator (for Android development)
 - Clerk account for authentication

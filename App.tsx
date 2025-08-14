@@ -8,7 +8,7 @@ import * as SecureStore from "expo-secure-store";
 
 import { AUTH_CONFIG } from "./src/lib/constants";
 import { VPNConnection } from "./src/components/vpn/VPNConnection";
-import { SplashScreen } from "./src/components/ui/SplashScreen";
+import { SplashScreen } from "./src/components/ui/SplashScreenSimple";
 
 // Create a token cache for Clerk
 const tokenCache = {
@@ -43,18 +43,22 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate app initialization - matches our beautiful splash animation
+    console.log("App mounted, splash screen will show for 2 seconds");
+    // Reduced timeout for faster loading during development
     const timer = setTimeout(() => {
+      console.log("Splash screen timeout completed, transitioning to main app");
       setIsLoading(false);
-    }, 6000); // Show splash for 6 seconds to complete full animation
+    }, 2000); // Reduced to 2 seconds for faster testing
 
     return () => clearTimeout(timer);
   }, []);
 
   if (isLoading) {
+    console.log("Showing splash screen");
     return <SplashScreen />;
   }
 
+  console.log("App fully loaded, showing main content");
   return (
     <ClerkProvider
       publishableKey={AUTH_CONFIG.clerkPublishableKey}

@@ -26,20 +26,27 @@ const ShieldOutline = ({ size = 120 }: { size?: number }) => (
   <Svg width={size} height={size} viewBox="0 0 200 240" fill="none">
     <Defs>
       <LinearGradient id="outlineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <Stop offset="0%" stopColor="#64748b" />
-        <Stop offset="100%" stopColor="#94a3b8" />
+        <Stop offset="0%" stopColor="#3b82f6" />
+        <Stop offset="50%" stopColor="#1d4ed8" />
+        <Stop offset="100%" stopColor="#1e40af" />
       </LinearGradient>
     </Defs>
+    {/* Subtle shadow */}
+    <Path
+      d="M100 22C120 22 140 27 155 37C170 47 180 62 180 82C180 122 160 142 140 162C120 182 100 212 100 212C100 212 80 182 60 162C40 142 20 122 20 82C20 62 30 47 45 37C60 27 80 22 100 22Z"
+      fill="#e2e8f0"
+      opacity="0.3"
+    />
     <Path
       d="M100 20C120 20 140 25 155 35C170 45 180 60 180 80C180 120 160 140 140 160C120 180 100 210 100 210C100 210 80 180 60 160C40 140 20 120 20 80C20 60 30 45 45 35C60 25 80 20 100 20Z"
       stroke="url(#outlineGradient)"
-      strokeWidth="3"
+      strokeWidth="4"
       fill="none"
     />
     {/* Connection dots */}
-    <Circle cx="70" cy="100" r="3" fill="#64748b" opacity="0.6" />
-    <Circle cx="130" cy="100" r="3" fill="#64748b" opacity="0.6" />
-    <Circle cx="100" cy="130" r="3" fill="#64748b" opacity="0.6" />
+    <Circle cx="70" cy="100" r="3" fill="#3b82f6" opacity="0.8" />
+    <Circle cx="130" cy="100" r="3" fill="#3b82f6" opacity="0.8" />
+    <Circle cx="100" cy="130" r="3" fill="#3b82f6" opacity="0.8" />
   </Svg>
 );
 
@@ -49,13 +56,25 @@ const ShieldFilled = ({ size = 120 }: { size?: number }) => (
     <Defs>
       <LinearGradient id="filledGradient" x1="0%" y1="0%" x2="100%" y2="100%">
         <Stop offset="0%" stopColor="#3b82f6" />
-        <Stop offset="50%" stopColor="#1d4ed8" />
+        <Stop offset="30%" stopColor="#2563eb" />
+        <Stop offset="70%" stopColor="#1d4ed8" />
         <Stop offset="100%" stopColor="#1e40af" />
       </LinearGradient>
     </Defs>
+    {/* Subtle outer shadow */}
+    <Path
+      d="M100 22C120 22 140 27 155 37C170 47 180 62 180 82C180 122 160 142 140 162C120 182 100 212 100 212C100 212 80 182 60 162C40 142 20 122 20 82C20 62 30 47 45 37C60 27 80 22 100 22Z"
+      fill="#94a3b8"
+      opacity="0.2"
+    />
     <Path
       d="M100 20C120 20 140 25 155 35C170 45 180 60 180 80C180 120 160 140 140 160C120 180 100 210 100 210C100 210 80 180 60 160C40 140 20 120 20 80C20 60 30 45 45 35C60 25 80 20 100 20Z"
       fill="url(#filledGradient)"
+    />
+    {/* Inner highlight for depth */}
+    <Path
+      d="M100 25C118 25 135 29 148 38C161 47 170 60 170 78C170 110 155 125 140 140C125 155 100 180 100 180C100 180 75 155 60 140C45 125 30 110 30 78C30 60 39 47 52 38C65 29 82 25 100 25Z"
+      fill="rgba(255,255,255,0.1)"
     />
     {/* VPN Symbol */}
     <Path
@@ -85,100 +104,70 @@ export const SplashScreen = () => {
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.3)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current; // Start larger to avoid small initial size
   const logoFadeAnim = useRef(new Animated.Value(0)).current;
   const textFadeAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    console.log("SplashScreen mounted, starting animation");
     startAnimation();
   }, []);
 
   const startAnimation = () => {
-    // Phase 1: Outline shield appears with scale and fade
+    // Phase 1: Simple fade and scale in
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 800,
+        duration: 500,
         easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
-        tension: 50,
-        friction: 7,
+        tension: 100,
+        friction: 8,
         useNativeDriver: true,
       }),
     ]).start(() => {
-      // Phase 2: Switch to filled shield after 1 second
+      console.log("Phase 1 complete");
+      // Phase 2: Switch to filled shield after 0.8 seconds
       setTimeout(() => {
+        console.log("Switching to filled phase");
         setPhase("filled");
-        Animated.sequence([
-          // Brief pulse effect
-          Animated.timing(pulseAnim, {
-            toValue: 1.1,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]).start(() => {
-          // Phase 3: Switch to final logo after another second
-          setTimeout(() => {
-            setPhase("final");
 
-            // Animate final logo appearance
-            Animated.parallel([
-              Animated.timing(logoFadeAnim, {
-                toValue: 1,
-                duration: 600,
-                easing: Easing.out(Easing.quad),
-                useNativeDriver: true,
-              }),
-              // Gentle rotation for premium feel
-              Animated.timing(rotateAnim, {
-                toValue: 1,
-                duration: 1000,
-                easing: Easing.out(Easing.quad),
-                useNativeDriver: true,
-              }),
-            ]).start(() => {
-              // Phase 4: Show text and progress
-              Animated.parallel([
-                Animated.timing(textFadeAnim, {
-                  toValue: 1,
-                  duration: 500,
-                  easing: Easing.out(Easing.quad),
-                  useNativeDriver: true,
-                }),
-                Animated.timing(progressAnim, {
-                  toValue: 1,
-                  duration: 2000,
-                  easing: Easing.out(Easing.quad),
-                  useNativeDriver: false,
-                }),
-              ]).start(() => {
-                // Complete animation after progress finishes
-                setTimeout(() => {
-                  setPhase("complete");
-                }, 500);
-              });
-            });
-          }, 1000);
-        });
-      }, 1000);
+        // Phase 3: Switch to final logo after another 0.8 seconds
+        setTimeout(() => {
+          console.log("Switching to final phase");
+          setPhase("final");
+
+          // Show final logo and text
+          Animated.parallel([
+            Animated.timing(logoFadeAnim, {
+              toValue: 1,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+            Animated.timing(textFadeAnim, {
+              toValue: 1,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+            Animated.timing(progressAnim, {
+              toValue: 1,
+              duration: 1500,
+              useNativeDriver: false,
+            }),
+          ]).start(() => {
+            console.log("Animation complete, setting phase to complete");
+            setTimeout(() => {
+              setPhase("complete");
+            }, 300);
+          });
+        }, 800);
+      }, 800);
     });
   };
-
-  const rotation = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
@@ -188,10 +177,7 @@ export const SplashScreen = () => {
   const renderLogo = () => {
     const logoStyle = {
       opacity: fadeAnim,
-      transform: [
-        { scale: Animated.multiply(scaleAnim, pulseAnim) },
-        { rotate: phase === "final" ? rotation : "0deg" },
-      ],
+      transform: [{ scale: scaleAnim }],
     };
 
     if (phase === "outline") {
@@ -305,7 +291,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: "#1e293b",
-    opacity: 0.8,
+    opacity: 0.7,
   },
   logoContainer: {
     alignItems: "center",
@@ -319,57 +305,71 @@ const styles = StyleSheet.create({
     height: 140,
   },
   finalLogo: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
   },
   textContainer: {
     alignItems: "center",
-    marginTop: 40,
+    marginTop: 50,
+    backgroundColor: "rgba(15, 23, 42, 0.8)",
+    paddingHorizontal: 30,
+    paddingVertical: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.3)",
   },
   appName: {
-    fontSize: 38,
+    fontSize: 42,
     fontWeight: "900",
     color: "white",
-    letterSpacing: 2,
-    textShadowColor: "rgba(59, 130, 246, 0.5)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    letterSpacing: 3,
+    textShadowColor: "rgba(59, 130, 246, 0.6)",
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 8,
+    textAlign: "center",
   },
   tagline: {
-    fontSize: 16,
-    color: "#94a3b8",
-    marginTop: 8,
+    fontSize: 18,
+    color: "#cbd5e1",
+    marginTop: 12,
     fontWeight: "600",
-    letterSpacing: 1,
+    letterSpacing: 2,
+    textAlign: "center",
+    opacity: 0.9,
   },
   loadingContainer: {
     alignItems: "center",
     position: "absolute",
     bottom: 120,
     width: "100%",
+    paddingHorizontal: 40,
   },
   loadingBar: {
-    width: 240,
-    height: 4,
-    backgroundColor: "#334155",
-    borderRadius: 2,
+    width: 280,
+    height: 6,
+    backgroundColor: "rgba(51, 65, 85, 0.6)",
+    borderRadius: 3,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.3)",
   },
   loadingProgress: {
     height: "100%",
     backgroundColor: "#3b82f6",
-    borderRadius: 2,
+    borderRadius: 3,
     shadowColor: "#3b82f6",
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
+    shadowOpacity: 1,
+    shadowRadius: 8,
   },
   loadingText: {
-    color: "#94a3b8",
-    fontSize: 14,
-    marginTop: 20,
+    color: "#cbd5e1",
+    fontSize: 16,
+    marginTop: 24,
     fontWeight: "500",
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    textAlign: "center",
+    opacity: 0.8,
   },
   particlesContainer: {
     position: "absolute",
@@ -381,9 +381,13 @@ const styles = StyleSheet.create({
   },
   particle: {
     position: "absolute",
-    width: 3,
-    height: 3,
+    width: 4,
+    height: 4,
     backgroundColor: "#3b82f6",
-    borderRadius: 1.5,
+    borderRadius: 2,
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
   },
 });

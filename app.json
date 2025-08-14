@@ -10,7 +10,7 @@
         "splash": {
             "image": "./assets/logo.png",
             "resizeMode": "contain",
-            "backgroundColor": "#1f2937"
+            "backgroundColor": "#0f172a"
         },
         "assetBundlePatterns": [
             "**/*"
@@ -23,7 +23,7 @@
         "android": {
             "adaptiveIcon": {
                 "foregroundImage": "./assets/adaptive-icon.png",
-                "backgroundColor": "#1f2937"
+                "backgroundColor": "#0f172a"
             },
             "package": "com.andgroupco.andvpn",
             "versionCode": 1,
@@ -36,7 +36,7 @@
         "web": {
             "bundler": "metro",
             "output": "static",
-            "favicon": "./assets/favicon.ico"
+            "favicon": "./assets/favicon.png"
         },
         "experiments": {
             "typedRoutes": true
@@ -45,6 +45,13 @@
             "eas": {
                 "projectId": "your-project-id-here"
             }
-        }
+        },
+        "plugins": [
+            "expo-dev-client",
+            "expo-font",
+            "expo-router",
+            "expo-secure-store"
+        ],
+        "runtimeVersion": "1.0.0"
     }
 }
