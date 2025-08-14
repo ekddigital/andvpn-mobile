@@ -11,6 +11,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Switch,
+  Alert,
 } from "react-native";
 import {
   COLORS,
@@ -19,42 +20,99 @@ import {
   VPN_SERVERS,
   VPN_PROTOCOLS,
 } from "../../lib/constants";
+import { useVPN } from "../../hooks/useVPN";
 import { ServerSelection } from "./ServerSelection";
 
 interface VPNConnectionProps {
+  // Props are now optional since we use the hook
   status?: keyof typeof CONNECTION_STATUS;
   onConnect?: (serverId: string, protocol: keyof typeof VPN_PROTOCOLS) => void;
   onDisconnect?: () => void;
 }
 
 export const VPNConnection: React.FC<VPNConnectionProps> = ({
-  status = "DISCONNECTED",
-  onConnect,
-  onDisconnect,
+  // Legacy props for backwards compatibility
+  status: legacyStatus,
+  onConnect: legacyOnConnect,
+  onDisconnect: legacyOnDisconnect,
 }) => {
+  // Use VPN hook for real functionality
+  const {
+    status: vpnStatus,
+    isConnected,
+    isConnecting,
+    connect,
+    disconnect,
+    isLoading,
+    error,
+    testServer,
+  } = useVPN();
+
   const [selectedServer, setSelectedServer] = useState("us-east-1");
   const [selectedProtocol, setSelectedProtocol] =
     useState<keyof typeof VPN_PROTOCOLS>("WIREGUARD");
   const [showServerSelection, setShowServerSelection] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
+
+  // Use hook status or fallback to legacy prop
+  const currentStatus =
+    vpnStatus.status === "DISCONNECTED"
+      ? "DISCONNECTED"
+      : vpnStatus.status === "ACTIVE"
+      ? "ACTIVE"
+      : vpnStatus.status === "CONNECTING"
+      ? "CONNECTING"
+      : vpnStatus.status === "BLOCKED"
+      ? "BLOCKED"
+      : legacyStatus || "DISCONNECTED";
 
   const server = VPN_SERVERS[selectedServer as keyof typeof VPN_SERVERS];
 
   const handleToggleConnection = async () => {
-    if (status === "ACTIVE") {
-      onDisconnect?.();
+    if (isConnected) {
+      // Disconnect
+      if (legacyOnDisconnect) {
+        legacyOnDisconnect();
+      } else {
+        await disconnect();
+      }
     } else {
-      setIsConnecting(true);
-      try {
-        await onConnect?.(selectedServer, selectedProtocol);
-      } finally {
-        setIsConnecting(false);
+      // Connect
+      if (legacyOnConnect) {
+        legacyOnConnect(selectedServer, selectedProtocol);
+      } else {
+        // Test server connectivity first
+        const isServerReachable = await testServer(selectedServer);
+        if (!isServerReachable) {
+          Alert.alert(
+            "Server Unavailable",
+            `The selected server (${server.name}) appears to be unreachable. Would you like to try anyway?`,
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Try Anyway",
+                onPress: () =>
+                  connect(
+                    selectedServer,
+                    selectedProtocol,
+                    `AndVPN-Mobile-${Date.now()}`
+                  ),
+              },
+            ]
+          );
+          return;
+        }
+
+        await connect(
+          selectedServer,
+          selectedProtocol,
+          `AndVPN-Mobile-${Date.now()}`
+        );
       }
     }
   };
 
   const getStatusColor = () => {
-    switch (status) {
+    switch (currentStatus) {
       case "ACTIVE":
         return STATUS_COLORS.ACTIVE;
       case "CONNECTING":
@@ -67,18 +125,21 @@ export const VPNConnection: React.FC<VPNConnectionProps> = ({
   };
 
   const getStatusText = () => {
-    return CONNECTION_STATUS[status] || "Disconnected";
+    return (
+      CONNECTION_STATUS[currentStatus as keyof typeof CONNECTION_STATUS] ||
+      "Disconnected"
+    );
   };
 
   const getButtonText = () => {
-    if (isConnecting || status === "CONNECTING") {
+    if (isConnecting || isLoading || currentStatus === "CONNECTING") {
       return "Connecting...";
     }
-    return status === "ACTIVE" ? "Disconnect" : "Connect";
+    return currentStatus === "ACTIVE" ? "Disconnect" : "Connect";
   };
 
   const handleProtocolToggle = () => {
-    if (status !== "ACTIVE" && status !== "CONNECTING") {
+    if (currentStatus !== "ACTIVE" && currentStatus !== "CONNECTING") {
       setSelectedProtocol(
         selectedProtocol === "WIREGUARD" ? "OPENVPN" : "WIREGUARD"
       );
@@ -108,7 +169,9 @@ export const VPNConnection: React.FC<VPNConnectionProps> = ({
           <Switch
             value={selectedProtocol === "OPENVPN"}
             onValueChange={handleProtocolToggle}
-            disabled={status === "ACTIVE" || status === "CONNECTING"}
+            disabled={
+              currentStatus === "ACTIVE" || currentStatus === "CONNECTING"
+            }
             trackColor={{
               false: COLORS.primary[100],
               true: COLORS.warning[500],
@@ -132,7 +195,7 @@ export const VPNConnection: React.FC<VPNConnectionProps> = ({
       <TouchableOpacity
         style={styles.serverContainer}
         onPress={() => setShowServerSelection(true)}
-        disabled={status === "ACTIVE" || status === "CONNECTING"}
+        disabled={currentStatus === "ACTIVE" || currentStatus === "CONNECTING"}
       >
         <Text style={styles.sectionLabel}>Server Location</Text>
         <View style={styles.serverInfo}>
@@ -146,7 +209,7 @@ export const VPNConnection: React.FC<VPNConnectionProps> = ({
       </TouchableOpacity>
 
       {/* Connection Display for Active Connection */}
-      {status === "ACTIVE" && (
+      {currentStatus === "ACTIVE" && (
         <View style={styles.connectionInfo}>
           <View style={styles.connectionRow}>
             <Text style={styles.connectionLabel}>Protocol:</Text>
@@ -171,13 +234,15 @@ export const VPNConnection: React.FC<VPNConnectionProps> = ({
           styles.connectButton,
           {
             backgroundColor:
-              status === "ACTIVE" ? STATUS_COLORS.BLOCKED : COLORS.primary[600],
+              currentStatus === "ACTIVE"
+                ? STATUS_COLORS.BLOCKED
+                : COLORS.primary[600],
           },
         ]}
         onPress={handleToggleConnection}
-        disabled={isConnecting || status === "CONNECTING"}
+        disabled={isConnecting || isLoading || currentStatus === "CONNECTING"}
       >
-        {(isConnecting || status === "CONNECTING") && (
+        {(isConnecting || isLoading || currentStatus === "CONNECTING") && (
           <ActivityIndicator
             size="small"
             color="#fff"
@@ -186,6 +251,13 @@ export const VPNConnection: React.FC<VPNConnectionProps> = ({
         )}
         <Text style={styles.buttonText}>{getButtonText()}</Text>
       </TouchableOpacity>
+
+      {/* Error Display */}
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
 
       {/* Server Selection Modal */}
       <ServerSelection
@@ -333,5 +405,20 @@ const styles = StyleSheet.create({
   },
   loadingIndicator: {
     marginRight: 10,
+  },
+  errorContainer: {
+    width: "100%",
+    padding: 12,
+    backgroundColor: "#fee2e2", // light red background
+    borderRadius: 8,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#fecaca", // light red border
+  },
+  errorText: {
+    color: COLORS.error[700],
+    fontSize: 14,
+    textAlign: "center",
+    fontWeight: "500",
   },
 });

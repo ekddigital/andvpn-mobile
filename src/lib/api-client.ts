@@ -166,6 +166,82 @@ class ApiClient {
     });
   }
 
+  // VPN specific endpoints
+  async createMultiProtocolDevice(deviceData: any): Promise<ApiResponse<any>> {
+    return this.request<any>("/vpn/devices/create-multi-protocol", {
+      method: "POST",
+      body: JSON.stringify(deviceData),
+    });
+  }
+
+  async getDeviceConfigJson(deviceId: string): Promise<ApiResponse<any>> {
+    return this.request<any>(`/vpn/devices/${deviceId}/config-json`);
+  }
+
+  // Raw HTTP methods for direct access
+  async get(endpoint: string): Promise<Response> {
+    const url = `${this.baseURL}${endpoint}`;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (this.authToken) {
+      headers.Authorization = `Bearer ${this.authToken}`;
+    }
+
+    return fetch(url, { headers });
+  }
+
+  async post(endpoint: string, data: any): Promise<Response> {
+    const url = `${this.baseURL}${endpoint}`;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (this.authToken) {
+      headers.Authorization = `Bearer ${this.authToken}`;
+    }
+
+    return fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(data),
+    });
+  }
+
+  async put(endpoint: string, data: any): Promise<Response> {
+    const url = `${this.baseURL}${endpoint}`;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (this.authToken) {
+      headers.Authorization = `Bearer ${this.authToken}`;
+    }
+
+    return fetch(url, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify(data),
+    });
+  }
+
+  async delete(endpoint: string): Promise<Response> {
+    const url = `${this.baseURL}${endpoint}`;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (this.authToken) {
+      headers.Authorization = `Bearer ${this.authToken}`;
+    }
+
+    return fetch(url, {
+      method: "DELETE",
+      headers,
+    });
+  }
+
   // Health check
   async healthCheck(): Promise<ApiResponse<{ status: string }>> {
     return this.request<{ status: string }>("/health");

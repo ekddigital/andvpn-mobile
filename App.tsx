@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View, ScrollView } from "react-native";
 import { ClerkProvider } from "@clerk/clerk-expo";
@@ -8,6 +8,7 @@ import * as SecureStore from "expo-secure-store";
 
 import { AUTH_CONFIG } from "./src/lib/constants";
 import { VPNConnection } from "./src/components/vpn/VPNConnection";
+import { SplashScreen } from "./src/components/ui/SplashScreen";
 
 // Create a token cache for Clerk
 const tokenCache = {
@@ -39,16 +40,20 @@ const queryClient = new QueryClient({
 });
 
 export default function App() {
-  const handleConnect = async (serverId: string, protocol: string) => {
-    console.log(`Connecting to ${serverId} using ${protocol}`);
-    // TODO: Implement actual VPN connection logic
-    // This will integrate with your VPN API
-  };
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleDisconnect = async () => {
-    console.log("Disconnecting VPN");
-    // TODO: Implement VPN disconnection logic
-  };
+  useEffect(() => {
+    // Simulate app initialization - matches our beautiful splash animation
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 6000); // Show splash for 6 seconds to complete full animation
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <SplashScreen />;
+  }
 
   return (
     <ClerkProvider
@@ -62,10 +67,7 @@ export default function App() {
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
             >
-              <VPNConnection
-                onConnect={handleConnect}
-                onDisconnect={handleDisconnect}
-              />
+              <VPNConnection />
             </ScrollView>
             <StatusBar style="auto" />
           </SafeAreaView>
