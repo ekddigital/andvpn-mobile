@@ -1,7 +1,7 @@
 /**
  * UI Components Index
- * Placeholder for future UI components
+ * Export UI components for reuse across the app
  */
 
-// TODO: Add UI components exports here
-export {};
+export { SplashScreen } from "./SplashScreen";
+export { SplashScreen as SplashScreenSimple } from "./SplashScreenSimple";

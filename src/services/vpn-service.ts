@@ -1,10 +1,11 @@
 /**
  * VPN Service - Handles VPN connection logic and API integration
- * Integrates with AndVPN backend API
+ * Integrates with AndVPN backend API and native VPN implementation
  */
 
 import { apiClient } from "../lib/api-client";
 import { VPN_SERVERS, VPN_PROTOCOLS, VPN_CONFIG } from "../lib/constants";
+import { nativeVPN, NativeVPNConfig } from "./native-vpn";
 
 export interface VPNDevice {
   id: string;
@@ -43,7 +44,8 @@ export interface VPNStatus {
 class VPNService {
   private currentDevice: VPNDevice | null = null;
   private connectionStatus: VPNStatus = { status: "DISCONNECTED" };
-  private statusListeners: Array<(status: VPNStatus) => void> = [];
+  // eslint-disable-next-line no-unused-vars
+  private statusListeners: ((status: VPNStatus) => void)[] = [];
 
   /**
    * Create or get existing VPN device
@@ -165,12 +167,50 @@ class VPNService {
       // Get device configuration
       const config = await this.getDeviceConfig(this.currentDevice.id);
 
-      // Here you would integrate with a VPN library like:
-      // - react-native-wireguard for WireGuard
-      // - react-native-openvpn for OpenVPN
-      // For now, we'll simulate the connection
+      // Validate server endpoint using VPN_CONFIG
+      const isValidEndpoint = this.validateServerEndpoint(server, protocol);
+      if (!isValidEndpoint) {
+        throw new Error("Invalid server endpoint configuration");
+      }
 
-      await this.simulateConnection(config);
+      // Create native VPN configuration using sensible defaults
+      const nativeConfig: NativeVPNConfig = {
+        serverEndpoint:
+          server.endpoints[
+            protocol.toLowerCase() as keyof typeof server.endpoints
+          ],
+        protocol: protocol.toLowerCase() as "wireguard" | "openvpn",
+        credentials: {
+          privateKey: config.privateKey,
+          publicKey: config.publicKey,
+          // For OpenVPN, you might need certificate data instead
+          ...(protocol === "OPENVPN" && { certificate: config.privateKey }),
+        },
+        dns: config.dns || ["1.1.1.1", "8.8.8.8"],
+        allowedIPs: config.allowedIPs,
+        mtu: 1420,
+      };
+
+      // Connect using native VPN implementation
+      const success = await nativeVPN.connect(nativeConfig);
+
+      if (!success) {
+        throw new Error("Native VPN connection failed");
+      }
+
+      // Subscribe to native VPN status changes
+      nativeVPN.onStatusChange((nativeStatus) => {
+        if (nativeStatus.isConnected) {
+          this.updateStatus({
+            status: "ACTIVE",
+            bytesReceived: nativeStatus.bytesReceived,
+            bytesSent: nativeStatus.bytesSent,
+            lastHandshake: nativeStatus.lastHandshake?.toISOString(),
+          });
+        } else {
+          this.updateStatus({ status: "DISCONNECTED" });
+        }
+      });
 
       this.updateStatus({
         status: "ACTIVE",
@@ -192,8 +232,12 @@ class VPNService {
    */
   async disconnect(): Promise<void> {
     try {
-      // Here you would call the VPN library's disconnect method
-      await this.simulateDisconnection();
+      // Disconnect using native VPN implementation
+      const success = await nativeVPN.disconnect();
+
+      if (!success) {
+        console.warn("Native VPN disconnect returned false, but continuing...");
+      }
 
       this.updateStatus({ status: "DISCONNECTED" });
       console.log("VPN disconnected successfully");
@@ -213,8 +257,12 @@ class VPNService {
   /**
    * Subscribe to status changes
    */
+  // eslint-disable-next-line no-unused-vars
   onStatusChange(callback: (status: VPNStatus) => void): () => void {
     this.statusListeners.push(callback);
+
+    // Immediately call with current status
+    callback(this.connectionStatus);
 
     // Return unsubscribe function
     return () => {
@@ -275,6 +323,42 @@ class VPNService {
   }
 
   /**
+   * Validate server endpoint configuration against VPN_CONFIG
+   */
+  private validateServerEndpoint(
+    server: (typeof VPN_SERVERS)[keyof typeof VPN_SERVERS],
+    protocol: keyof typeof VPN_PROTOCOLS
+  ): boolean {
+    const endpoint =
+      server.endpoints[protocol.toLowerCase() as keyof typeof server.endpoints];
+
+    if (!endpoint) {
+      return false;
+    }
+
+    // Validate against VPN_CONFIG expected patterns
+    const protocolConfig =
+      VPN_CONFIG[protocol.toLowerCase() as keyof typeof VPN_CONFIG];
+
+    if (!protocolConfig) {
+      console.warn(`Unknown protocol configuration: ${protocol}`);
+      return false;
+    }
+
+    if (protocol === "WIREGUARD") {
+      // Validate WireGuard endpoint format and port
+      const [, port] = endpoint.split(":");
+      return port === "51820" || port === "51821"; // Main or TCP fallback
+    } else if (protocol === "OPENVPN") {
+      // Validate OpenVPN endpoint format and port
+      const [, port] = endpoint.split(":");
+      return port === "443" || port === "1194"; // HTTPS or standard OpenVPN
+    }
+
+    return false;
+  }
+
+  /**
    * Test VPN server connectivity
    */
   async testServerConnectivity(serverId: string): Promise<boolean> {
@@ -284,25 +368,8 @@ class VPNService {
         return false;
       }
 
-      // Simple ping test to server endpoint - using AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      try {
-        const response = await fetch(
-          `https://${server.endpoints.wireguard.split(":")[0]}`,
-          {
-            method: "HEAD",
-            signal: controller.signal,
-          }
-        );
-
-        clearTimeout(timeoutId);
-        return response.ok;
-      } catch (error) {
-        clearTimeout(timeoutId);
-        return false;
-      }
+      // Use native VPN to test connectivity
+      return await nativeVPN.testConnection(server.endpoints.wireguard);
     } catch (error) {
       console.warn(`Server ${serverId} connectivity test failed:`, error);
       return false;

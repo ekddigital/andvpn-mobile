@@ -18,9 +18,9 @@ export interface UseVPNReturn {
 
   // Actions
   connect: (
-    serverId: string,
-    protocol: keyof typeof VPN_PROTOCOLS,
-    deviceName?: string
+    _serverId: string,
+    _protocol: keyof typeof VPN_PROTOCOLS,
+    _deviceName?: string
   ) => Promise<void>;
   disconnect: () => Promise<void>;
 
@@ -29,7 +29,7 @@ export interface UseVPNReturn {
   refreshDevices: () => Promise<void>;
 
   // Server testing
-  testServer: (serverId: string) => Promise<boolean>;
+  testServer: (_serverId: string) => Promise<boolean>;
 
   // Loading states
   isLoading: boolean;
@@ -49,6 +49,30 @@ export const useVPN = (): UseVPNReturn => {
   // Computed values
   const isConnected = status.status === "ACTIVE";
   const isConnecting = status.status === "CONNECTING";
+
+  /**
+   * Refresh devices list
+   */
+  const refreshDevices = useCallback(async (): Promise<void> => {
+    if (!isSignedIn) return;
+
+    try {
+      setError(null);
+      const userDevices = await vpnService.getDevices();
+      setDevices(userDevices);
+
+      // Set current device if we have one active
+      const activeDevice = userDevices.find(
+        (device) => device.status === "ACTIVE"
+      );
+      setCurrentDevice(activeDevice || null);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load devices";
+      setError(errorMessage);
+      console.error("Error refreshing devices:", err);
+    }
+  }, [isSignedIn]);
 
   // Initialize VPN service when user signs in
   useEffect(() => {
@@ -72,9 +96,9 @@ export const useVPN = (): UseVPNReturn => {
   // Load devices on mount
   useEffect(() => {
     if (isSignedIn) {
-      refreshDevices();
+      refreshDevices().catch(console.error);
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, refreshDevices]);
 
   /**
    * Connect to VPN server
@@ -109,7 +133,7 @@ export const useVPN = (): UseVPNReturn => {
         setIsLoading(false);
       }
     },
-    [isSignedIn]
+    [isSignedIn, refreshDevices]
   );
 
   /**
@@ -131,30 +155,6 @@ export const useVPN = (): UseVPNReturn => {
       setIsLoading(false);
     }
   }, []);
-
-  /**
-   * Refresh devices list
-   */
-  const refreshDevices = useCallback(async (): Promise<void> => {
-    if (!isSignedIn) return;
-
-    try {
-      setError(null);
-      const userDevices = await vpnService.getDevices();
-      setDevices(userDevices);
-
-      // Set current device if we have one active
-      const activeDevice = userDevices.find(
-        (device) => device.status === "ACTIVE"
-      );
-      setCurrentDevice(activeDevice || null);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load devices";
-      setError(errorMessage);
-      console.error("Error refreshing devices:", err);
-    }
-  }, [isSignedIn]);
 
   /**
    * Test server connectivity

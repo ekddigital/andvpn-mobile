@@ -1,6 +1,7 @@
 {
     "name": "andvpn-mobile",
     "version": "1.0.0",
+    "type": "module",
     "description": "AndVPN Mobile App - Secure WireGuard & OpenVPN Client",
     "main": "expo-router/entry",
     "scripts": {
@@ -25,6 +26,7 @@
         "@clerk/clerk-expo": "^2.14.18",
         "@expo/vector-icons": "^14.1.0",
         "@hookform/resolvers": "^5.1.1",
+        "@react-native-async-storage/async-storage": "^2.2.0",
         "@react-navigation/bottom-tabs": "^7.2.0",
         "@react-navigation/native": "^7.0.14",
         "@react-navigation/stack": "^7.4.7",
@@ -43,6 +45,7 @@
         "expo-device": "~7.1.4",
         "expo-file-system": "~18.1.11",
         "expo-font": "~13.3.2",
+        "expo-linear-gradient": "^14.1.5",
         "expo-linking": "~7.1.7",
         "expo-location": "~18.1.6",
         "expo-network": "~7.1.5",
@@ -55,13 +58,14 @@
         "expo-system-ui": "~5.0.10",
         "expo-updates": "~0.28.17",
         "expo-web-browser": "~14.2.0",
-        "lucide-react-native": "^0.460.0",
+        "lucide-react-native": "^0.542.0",
         "nativewind": "^2.0.11",
         "react": "19.0.0",
         "react-dom": "19.0.0",
         "react-hook-form": "^7.60.0",
         "react-native": "0.79.5",
         "react-native-gesture-handler": "~2.24.0",
+        "react-native-network-info": "^5.2.1",
         "react-native-paper": "^5.14.5",
         "react-native-qrcode-svg": "^6.3.15",
         "react-native-reanimated": "~3.17.4",
@@ -77,14 +81,14 @@
         "@babel/plugin-transform-nullish-coalescing-operator": "^7.27.1",
         "@babel/plugin-transform-optional-chaining": "^7.27.1",
         "@types/node": "^20.17.4",
-        "@types/react": "^18.2.79",
-        "@types/react-dom": "^18.2.25",
-        "@typescript-eslint/eslint-plugin": "^7.18.0",
-        "@typescript-eslint/parser": "^7.18.0",
-        "eslint": "^8.57.1",
-        "eslint-config-expo": "~8.0.1",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "@typescript-eslint/eslint-plugin": "^8.42.0",
+        "@typescript-eslint/parser": "^8.42.0",
+        "eslint": "^9.34.0",
+        "eslint-config-expo": "^10.0.0",
         "tailwindcss": "^3.4.15",
-        "typescript": "^5.7.2"
+        "typescript": "~5.5.4"
     },
     "resolutions": {
         "glob": "^10.4.5",
@@ -92,7 +96,8 @@
         "inflight": "npm:@isaacs/inflight@^1.0.4",
         "@xmldom/xmldom": "^0.8.10",
         "text-encoding": "npm:fast-text-encoding@^1.0.6",
-        "eslint": "^8.57.1"
+        "eslint": "^9.34.0",
+        "typescript": "~5.5.4"
     },
     "overrides": {
         "glob": "^10.4.5",
@@ -100,7 +105,8 @@
         "inflight": "npm:@isaacs/inflight@^1.0.4",
         "@xmldom/xmldom": "^0.8.10",
         "text-encoding": "npm:fast-text-encoding@^1.0.6",
-        "eslint": "^8.57.1"
+        "eslint": "^9.34.0",
+        "typescript": "~5.5.4"
     },
     "private": true
 }

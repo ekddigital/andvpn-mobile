@@ -1,6 +1,6 @@
 /**
  * Enhanced VPN Connection Component
- * Main VPN interface with protocol switching and server selection
+ * Clean connection screen with large circular Connect button and modular components
  */
 
 import React, { useState } from "react";
@@ -9,30 +9,26 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
-  Switch,
   Alert,
+  ScrollView,
 } from "react-native";
-import {
-  COLORS,
-  STATUS_COLORS,
-  CONNECTION_STATUS,
-  VPN_SERVERS,
-  VPN_PROTOCOLS,
-} from "../../lib/constants";
+import { COLORS, VPN_SERVERS, VPN_PROTOCOLS } from "../../lib/constants";
 import { useVPN } from "../../hooks/useVPN";
 import { ServerSelection } from "./ServerSelection";
+import { ConnectButton } from "./ConnectButton";
+import { ProtocolToggle } from "./ProtocolToggle";
+import { Ionicons } from "@expo/vector-icons";
 
 interface VPNConnectionProps {
-  // Props are now optional since we use the hook
-  status?: keyof typeof CONNECTION_STATUS;
-  onConnect?: (serverId: string, protocol: keyof typeof VPN_PROTOCOLS) => void;
+  // Optional legacy props for backward compatibility
+  onConnect?: (
+    _serverId: string,
+    _protocol: keyof typeof VPN_PROTOCOLS
+  ) => void;
   onDisconnect?: () => void;
 }
 
 export const VPNConnection: React.FC<VPNConnectionProps> = ({
-  // Legacy props for backwards compatibility
-  status: legacyStatus,
   onConnect: legacyOnConnect,
   onDisconnect: legacyOnDisconnect,
 }) => {
@@ -52,18 +48,6 @@ export const VPNConnection: React.FC<VPNConnectionProps> = ({
   const [selectedProtocol, setSelectedProtocol] =
     useState<keyof typeof VPN_PROTOCOLS>("WIREGUARD");
   const [showServerSelection, setShowServerSelection] = useState(false);
-
-  // Use hook status or fallback to legacy prop
-  const currentStatus =
-    vpnStatus.status === "DISCONNECTED"
-      ? "DISCONNECTED"
-      : vpnStatus.status === "ACTIVE"
-      ? "ACTIVE"
-      : vpnStatus.status === "CONNECTING"
-      ? "CONNECTING"
-      : vpnStatus.status === "BLOCKED"
-      ? "BLOCKED"
-      : legacyStatus || "DISCONNECTED";
 
   const server = VPN_SERVERS[selectedServer as keyof typeof VPN_SERVERS];
 
@@ -101,7 +85,6 @@ export const VPNConnection: React.FC<VPNConnectionProps> = ({
           );
           return;
         }
-
         await connect(
           selectedServer,
           selectedProtocol,
@@ -111,234 +94,177 @@ export const VPNConnection: React.FC<VPNConnectionProps> = ({
     }
   };
 
-  const getStatusColor = () => {
-    switch (currentStatus) {
-      case "ACTIVE":
-        return STATUS_COLORS.ACTIVE;
-      case "CONNECTING":
-        return COLORS.warning[500];
-      case "BLOCKED":
-        return STATUS_COLORS.BLOCKED;
-      default:
-        return COLORS.gray[300];
-    }
-  };
-
-  const getStatusText = () => {
-    return (
-      CONNECTION_STATUS[currentStatus as keyof typeof CONNECTION_STATUS] ||
-      "Disconnected"
-    );
-  };
-
-  const getButtonText = () => {
-    if (isConnecting || isLoading || currentStatus === "CONNECTING") {
-      return "Connecting...";
-    }
-    return currentStatus === "ACTIVE" ? "Disconnect" : "Connect";
-  };
-
-  const handleProtocolToggle = () => {
-    if (currentStatus !== "ACTIVE" && currentStatus !== "CONNECTING") {
-      setSelectedProtocol(
-        selectedProtocol === "WIREGUARD" ? "OPENVPN" : "WIREGUARD"
-      );
-    }
+  const handleProtocolChange = (protocol: keyof typeof VPN_PROTOCOLS) => {
+    setSelectedProtocol(protocol);
   };
 
   return (
-    <View style={styles.container}>
-      {/* Connection Status */}
-      <View style={styles.statusContainer}>
-        <View style={styles.statusIndicatorContainer}>
-          <View
-            style={[
-              styles.statusIndicator,
-              { backgroundColor: getStatusColor() },
-            ]}
-          />
-          <Text style={styles.statusText}>{getStatusText()}</Text>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.contentContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>AndVPN</Text>
+          <Text style={styles.subtitle}>
+            {isConnected ? "Protected" : "Not Protected"}
+          </Text>
         </View>
-      </View>
 
-      {/* Protocol Selector */}
-      <View style={styles.protocolContainer}>
-        <Text style={styles.sectionLabel}>Protocol</Text>
-        <View style={styles.protocolSelector}>
-          <Text style={styles.protocolText}>WireGuard</Text>
-          <Switch
-            value={selectedProtocol === "OPENVPN"}
-            onValueChange={handleProtocolToggle}
-            disabled={
-              currentStatus === "ACTIVE" || currentStatus === "CONNECTING"
-            }
-            trackColor={{
-              false: COLORS.primary[100],
-              true: COLORS.warning[500],
-            }}
-            thumbColor={
-              selectedProtocol === "OPENVPN"
-                ? COLORS.warning[600]
-                : COLORS.primary[600]
-            }
-          />
-          <Text style={styles.protocolText}>OpenVPN</Text>
+        {/* Protocol Toggle */}
+        <ProtocolToggle
+          selectedProtocol={selectedProtocol}
+          onProtocolChange={handleProtocolChange}
+          disabled={isConnected || isConnecting}
+        />
+
+        {/* Server Selection */}
+        <View style={styles.serverSection}>
+          <Text style={styles.sectionLabel}>Server Location</Text>
+          <TouchableOpacity
+            style={styles.serverSelector}
+            onPress={() => setShowServerSelection(true)}
+            disabled={isConnected || isConnecting}
+          >
+            <View style={styles.serverInfo}>
+              <View style={styles.serverFlag}>
+                <Text style={styles.flagEmoji}>{server.flag}</Text>
+              </View>
+              <View style={styles.serverDetails}>
+                <Text style={styles.serverName}>{server.name}</Text>
+                <Text style={styles.serverLocation}>{server.location}</Text>
+              </View>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={COLORS.gray[400]}
+            />
+          </TouchableOpacity>
         </View>
-        <Text style={styles.protocolDescription}>
-          {selectedProtocol === "WIREGUARD"
-            ? "Fast, modern VPN protocol"
-            : "Reliable, proven VPN protocol"}
-        </Text>
-      </View>
 
-      {/* Server Selection */}
-      <TouchableOpacity
-        style={styles.serverContainer}
-        onPress={() => setShowServerSelection(true)}
-        disabled={currentStatus === "ACTIVE" || currentStatus === "CONNECTING"}
-      >
-        <Text style={styles.sectionLabel}>Server Location</Text>
-        <View style={styles.serverInfo}>
-          <Text style={styles.serverFlag}>{server?.flag}</Text>
-          <View style={styles.serverDetails}>
-            <Text style={styles.serverName}>{server?.name}</Text>
-            <Text style={styles.serverLocation}>{server?.location}</Text>
+        {/* Connect Button */}
+        <ConnectButton
+          status={vpnStatus.status}
+          onPress={handleToggleConnection}
+          disabled={isLoading}
+          protocol={selectedProtocol}
+          serverName={server.name}
+        />
+
+        {/* Connection Stats */}
+        {isConnected && (
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Upload</Text>
+              <Text style={styles.statValue}>
+                {formatBytes(vpnStatus.bytesSent || 0)}
+              </Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Download</Text>
+              <Text style={styles.statValue}>
+                {formatBytes(vpnStatus.bytesReceived || 0)}
+              </Text>
+            </View>
           </View>
-          <Text style={styles.changeText}>Change</Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* Connection Display for Active Connection */}
-      {currentStatus === "ACTIVE" && (
-        <View style={styles.connectionInfo}>
-          <View style={styles.connectionRow}>
-            <Text style={styles.connectionLabel}>Protocol:</Text>
-            <Text style={styles.connectionValue}>{selectedProtocol}</Text>
-          </View>
-          <View style={styles.connectionRow}>
-            <Text style={styles.connectionLabel}>Endpoint:</Text>
-            <Text style={styles.connectionValue}>
-              {
-                server?.endpoints[
-                  selectedProtocol.toLowerCase() as keyof typeof server.endpoints
-                ]
-              }
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {/* Main Connect Button */}
-      <TouchableOpacity
-        style={[
-          styles.connectButton,
-          {
-            backgroundColor:
-              currentStatus === "ACTIVE"
-                ? STATUS_COLORS.BLOCKED
-                : COLORS.primary[600],
-          },
-        ]}
-        onPress={handleToggleConnection}
-        disabled={isConnecting || isLoading || currentStatus === "CONNECTING"}
-      >
-        {(isConnecting || isLoading || currentStatus === "CONNECTING") && (
-          <ActivityIndicator
-            size="small"
-            color="#fff"
-            style={styles.loadingIndicator}
-          />
         )}
-        <Text style={styles.buttonText}>{getButtonText()}</Text>
-      </TouchableOpacity>
 
-      {/* Error Display */}
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
+        {/* Error Display */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle" size={20} color={COLORS.error[500]} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+      </View>
 
       {/* Server Selection Modal */}
       <ServerSelection
         visible={showServerSelection}
+        onClose={() => setShowServerSelection(false)}
+        onServerSelect={(serverId: string) => {
+          setSelectedServer(serverId);
+          setShowServerSelection(false);
+        }}
         selectedServer={selectedServer}
         selectedProtocol={selectedProtocol}
-        onServerSelect={setSelectedServer}
         onProtocolChange={setSelectedProtocol}
-        onClose={() => setShowServerSelection(false)}
       />
-    </View>
+    </ScrollView>
   );
+};
+
+// Helper function to format bytes
+const formatBytes = (bytes: number): string => {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: COLORS.gray[50],
+  },
+  contentContainer: {
     padding: 20,
+    paddingTop: 40,
+  },
+  header: {
     alignItems: "center",
+    marginBottom: 40,
   },
-  statusContainer: {
-    alignItems: "center",
-    marginBottom: 30,
-  },
-  statusIndicatorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statusIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  statusText: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: COLORS.gray[800],
-  },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.gray[600],
+  title: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: COLORS.gray[900],
     marginBottom: 8,
   },
-  protocolContainer: {
-    alignItems: "center",
-    marginBottom: 25,
-    width: "100%",
+  subtitle: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: COLORS.gray[600],
   },
-  protocolSelector: {
+  serverSection: {
+    marginBottom: 30,
+  },
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.gray[700],
+    marginBottom: 12,
+  },
+  serverSelector: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 16,
     flexDirection: "row",
     alignItems: "center",
-    gap: 15,
-    marginBottom: 5,
-  },
-  protocolText: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: COLORS.gray[700],
-  },
-  protocolDescription: {
-    fontSize: 12,
-    color: COLORS.gray[500],
-    textAlign: "center",
-  },
-  serverContainer: {
-    width: "100%",
-    marginBottom: 30,
+    justifyContent: "space-between",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   serverInfo: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    backgroundColor: COLORS.gray[50],
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.gray[200],
+    flex: 1,
   },
   serverFlag: {
-    fontSize: 24,
-    marginRight: 15,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.gray[100],
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  flagEmoji: {
+    fontSize: 20,
   },
   serverDetails: {
     flex: 1,
@@ -346,79 +272,59 @@ const styles = StyleSheet.create({
   serverName: {
     fontSize: 16,
     fontWeight: "600",
-    color: COLORS.gray[900],
+    color: COLORS.gray[800],
+    marginBottom: 2,
   },
   serverLocation: {
     fontSize: 14,
     color: COLORS.gray[500],
-    marginTop: 2,
   },
-  changeText: {
-    fontSize: 14,
-    color: COLORS.primary[600],
-    fontWeight: "500",
-  },
-  connectionInfo: {
-    width: "100%",
-    padding: 16,
-    backgroundColor: COLORS.gray[50],
+  statsContainer: {
+    flexDirection: "row",
+    backgroundColor: "white",
     borderRadius: 12,
-    marginBottom: 25,
-    borderWidth: 1,
-    borderColor: COLORS.success[500],
-  },
-  connectionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  connectionLabel: {
-    fontSize: 14,
-    color: COLORS.gray[600],
-    fontWeight: "500",
-  },
-  connectionValue: {
-    fontSize: 14,
-    color: COLORS.gray[800],
-    fontWeight: "600",
-    flex: 1,
-    textAlign: "right",
-  },
-  connectButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 50,
-    paddingVertical: 18,
-    borderRadius: 30,
-    minWidth: 200,
-    elevation: 2,
+    padding: 20,
+    marginTop: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  buttonText: {
-    color: "#fff",
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: COLORS.gray[200],
+    marginHorizontal: 20,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: COLORS.gray[500],
+    marginBottom: 4,
+  },
+  statValue: {
     fontSize: 18,
     fontWeight: "600",
-  },
-  loadingIndicator: {
-    marginRight: 10,
+    color: COLORS.gray[800],
   },
   errorContainer: {
-    width: "100%",
-    padding: 12,
-    backgroundColor: "#fee2e2", // light red background
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.gray[50],
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.error[500],
+    padding: 16,
     borderRadius: 8,
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: "#fecaca", // light red border
+    marginTop: 20,
   },
   errorText: {
-    color: COLORS.error[700],
+    flex: 1,
     fontSize: 14,
-    textAlign: "center",
-    fontWeight: "500",
+    color: COLORS.error[600],
+    marginLeft: 12,
+    lineHeight: 20,
   },
 });

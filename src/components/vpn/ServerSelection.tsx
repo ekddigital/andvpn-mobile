@@ -19,6 +19,8 @@ import {
   COLORS,
 } from "../../lib/constants";
 
+// Type definition for server objects (used implicitly by VPN_SERVERS values)
+// eslint-disable-next-line no-unused-vars
 interface Server {
   id: string;
   name: string;
@@ -35,7 +37,9 @@ interface Server {
 interface ServerSelectionProps {
   selectedServer?: string;
   selectedProtocol?: keyof typeof VPN_PROTOCOLS;
+  // eslint-disable-next-line no-unused-vars
   onServerSelect: (serverId: string) => void;
+  // eslint-disable-next-line no-unused-vars
   onProtocolChange: (protocol: keyof typeof VPN_PROTOCOLS) => void;
   visible: boolean;
   onClose: () => void;

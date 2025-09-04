@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, View, ScrollView } from "react-native";
+import { StyleSheet, ScrollView } from "react-native";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";

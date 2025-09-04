@@ -1,7 +1,7 @@
 // Permissions utility functions for AndVPN Mobile
 // This file should be placed at: src/lib/auth/permissions.ts
 
-import { UserRole, Permission, ROLE_PERMISSIONS } from "@/types";
+import { UserRole, Permission, ROLE_PERMISSIONS } from "../types";
 
 /**
  * DRY approach to role-based access control

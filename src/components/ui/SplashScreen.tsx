@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -99,22 +99,18 @@ const ShieldFilled = ({ size = 120 }: { size?: number }) => (
   </Svg>
 );
 
-export const SplashScreen = () => {
+export const SplashScreen = ({ onFinish }: { onFinish?: () => void }) => {
   const [phase, setPhase] = useState<AnimationPhase>("outline");
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current; // Start larger to avoid small initial size
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const logoFadeAnim = useRef(new Animated.Value(0)).current;
   const textFadeAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    console.log("SplashScreen mounted, starting animation");
-    startAnimation();
-  }, []);
-
-  const startAnimation = () => {
+  const startAnimation = useCallback(() => {
+    console.log("Starting splash animation sequence");
     // Phase 1: Simple fade and scale in
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -162,12 +158,20 @@ export const SplashScreen = () => {
             console.log("Animation complete, setting phase to complete");
             setTimeout(() => {
               setPhase("complete");
+              if (onFinish) {
+                onFinish();
+              }
             }, 300);
           });
         }, 800);
       }, 800);
     });
-  };
+  }, [fadeAnim, scaleAnim, logoFadeAnim, textFadeAnim, progressAnim, onFinish]);
+
+  useEffect(() => {
+    console.log("SplashScreen mounted, starting animation");
+    startAnimation();
+  }, [startAnimation]);
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],

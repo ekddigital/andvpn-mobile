@@ -121,11 +121,11 @@ export function getStatusColor(status: string): string {
 }
 
 // Debounce function for search inputs
-export function debounce<T extends (...args: any[]) => void>(
+export function debounce<T extends (..._args: any[]) => void>(
   func: T,
   wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
+): (..._args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout>;
 
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
