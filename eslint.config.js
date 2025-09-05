@@ -1,6 +1,6 @@
-import pluginExpo from 'eslint-config-expo/flat.js';
+const pluginExpo = require('eslint-config-expo/flat.js');
 
-export default [
+module.exports = [
     // Apply Expo config to all files
     ...pluginExpo,
 

@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
 
+import "./global.css";
+
 import { AUTH_CONFIG } from "./src/lib/constants";
 import { VPNConnection } from "./src/components/vpn/VPNConnection";
 import { SplashScreen } from "./src/components/ui/SplashScreenSimple";

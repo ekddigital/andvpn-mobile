@@ -5,7 +5,10 @@
     "esModuleInterop": true,
     "isolatedModules": true,
     "jsx": "react-native",
-    "lib": ["dom", "esnext"],
+    "lib": [
+      "dom",
+      "esnext"
+    ],
     "moduleResolution": "bundler",
     "noEmit": true,
     "skipLibCheck": true,
@@ -14,12 +17,24 @@
     "target": "esnext",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./components/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/types/*": ["./types/*"],
-      "@/hooks/*": ["./hooks/*"],
-      "@/constants/*": ["./constants/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@/components/*": [
+        "./components/*"
+      ],
+      "@/lib/*": [
+        "./lib/*"
+      ],
+      "@/types/*": [
+        "./types/*"
+      ],
+      "@/hooks/*": [
+        "./hooks/*"
+      ],
+      "@/constants/*": [
+        "./constants/*"
+      ]
     }
   },
   "extends": "expo/tsconfig.base",
@@ -27,6 +42,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
   ]
 }

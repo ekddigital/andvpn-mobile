@@ -53,7 +53,6 @@
         "plugins": [
             "expo-dev-client",
             "expo-font",
-            "expo-router",
             "expo-secure-store"
         ],
         "runtimeVersion": "1.0.0",
