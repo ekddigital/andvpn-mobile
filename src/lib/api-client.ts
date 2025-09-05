@@ -3,10 +3,17 @@
  * Handles all HTTP requests to the backend
  */
 
-import { ApiResponse, Device, User, DeviceCreationData } from "../types";
+import {
+  ApiResponse,
+  Device,
+  User,
+  DeviceCreationData,
+  UsageStats,
+  UserSubscriptionInfo,
+} from "../types";
 
 const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api";
+  process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:3000/api";
 
 class ApiClient {
   private baseURL: string;
@@ -18,6 +25,7 @@ class ApiClient {
 
   setAuthToken(token: string) {
     this.authToken = token;
+    console.log("🔐 Auth token set for API client");
   }
 
   private async request<T>(
@@ -36,57 +44,68 @@ class ApiClient {
     }
 
     try {
+      console.log(`🌐 API Request: ${options.method || "GET"} ${url}`);
+
       const response = await fetch(url, {
         ...options,
         headers,
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.error(
+          `❌ API Error: ${response.status} - ${response.statusText}`
+        );
+        throw new Error(
+          `API Error: ${response.status} - ${response.statusText}`
+        );
       }
 
       const data = await response.json();
-      return data;
+      console.log(`✅ API Success: ${options.method || "GET"} ${endpoint}`);
+
+      return {
+        success: true,
+        data,
+      };
     } catch (error) {
       console.error("API request failed:", error);
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Unknown error occurred",
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
 
-  // User endpoints
+  // Authentication methods
   async getCurrentUser(): Promise<ApiResponse<User>> {
-    return this.request<User>("/user/profile");
+    return this.request<User>("/user/me");
   }
 
-  async updateUserRole(
-    userId: string,
-    role: string
-  ): Promise<ApiResponse<User>> {
-    return this.request<User>(`/user/${userId}/role`, {
-      method: "PATCH",
-      body: JSON.stringify({ role }),
-    });
+  async getUserRole(): Promise<ApiResponse<{ role: string }>> {
+    return this.request<{ role: string }>("/user/role");
   }
 
-  // Device endpoints
+  // Device management methods
   async getDevices(): Promise<ApiResponse<Device[]>> {
     return this.request<Device[]>("/vpn/devices");
   }
 
-  async getDevice(deviceId: string): Promise<ApiResponse<Device>> {
-    return this.request<Device>(`/vpn/devices/${deviceId}`);
+  async getAllDevices(): Promise<ApiResponse<Device[]>> {
+    return this.request<Device[]>("/admin/devices");
   }
 
   async createDevice(
     deviceData: DeviceCreationData
   ): Promise<ApiResponse<Device>> {
-    return this.request<Device>("/vpn/devices/create", {
+    return this.request<Device>("/vpn/devices", {
       method: "POST",
       body: JSON.stringify(deviceData),
+    });
+  }
+
+  async deleteDevice(deviceId: string): Promise<ApiResponse<void>> {
+    return this.request<void>(`/vpn/devices/${deviceId}`, {
+      method: "DELETE",
     });
   }
 
@@ -100,153 +119,79 @@ class ApiClient {
     });
   }
 
-  async deleteDevice(deviceId: string): Promise<ApiResponse<void>> {
-    return this.request<void>(`/vpn/devices/${deviceId}`, {
-      method: "DELETE",
-    });
-  }
-
   async getDeviceConfig(
     deviceId: string
   ): Promise<ApiResponse<{ config: string }>> {
     return this.request<{ config: string }>(`/vpn/devices/${deviceId}/config`);
   }
 
-  async getDeviceQR(
-    deviceId: string
-  ): Promise<ApiResponse<{ qrCode: string }>> {
-    return this.request<{ qrCode: string }>(`/vpn/devices/${deviceId}/qr`);
-  }
-
-  async downloadDeviceConfig(
-    deviceId: string,
-    type: "wireguard" | "openvpn"
-  ): Promise<ApiResponse<{ config: string; filename: string }>> {
-    return this.request<{ config: string; filename: string }>(
-      `/vpn/devices/${deviceId}/download/${type}`
-    );
-  }
-
-  // VPN status endpoints
-  async getVPNStatus(): Promise<
-    ApiResponse<{ isConnected: boolean; peers: any[] }>
-  > {
-    return this.request<{ isConnected: boolean; peers: any[] }>("/vpn/status");
-  }
-
-  async getVPNPeers(): Promise<ApiResponse<any[]>> {
-    return this.request<any[]>("/vpn/peers");
-  }
-
-  // Analytics endpoints
-  async getAnalytics(): Promise<ApiResponse<any>> {
-    return this.request<any>("/vpn/analytics");
-  }
-
-  // Admin endpoints
-  async getAdminAnalytics(): Promise<ApiResponse<any>> {
-    return this.request<any>("/admin/analytics");
-  }
-
-  async getAllDevices(): Promise<ApiResponse<Device[]>> {
-    return this.request<Device[]>("/admin/devices");
-  }
-
-  async blockDevice(deviceId: string): Promise<ApiResponse<Device>> {
-    return this.request<Device>(`/admin/devices/${deviceId}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status: "BLOCKED" }),
-    });
-  }
-
-  async unblockDevice(deviceId: string): Promise<ApiResponse<Device>> {
-    return this.request<Device>(`/admin/devices/${deviceId}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status: "ACTIVE" }),
-    });
-  }
-
-  // VPN specific endpoints
-  async createMultiProtocolDevice(deviceData: any): Promise<ApiResponse<any>> {
-    return this.request<any>("/vpn/devices/create-multi-protocol", {
-      method: "POST",
-      body: JSON.stringify(deviceData),
-    });
-  }
-
-  async getDeviceConfigJson(deviceId: string): Promise<ApiResponse<any>> {
-    return this.request<any>(`/vpn/devices/${deviceId}/config-json`);
-  }
-
-  // Raw HTTP methods for direct access
-  async get(endpoint: string): Promise<Response> {
-    const url = `${this.baseURL}${endpoint}`;
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    if (this.authToken) {
-      headers.Authorization = `Bearer ${this.authToken}`;
-    }
-
-    return fetch(url, { headers });
-  }
-
-  async post(endpoint: string, data: any): Promise<Response> {
-    const url = `${this.baseURL}${endpoint}`;
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    if (this.authToken) {
-      headers.Authorization = `Bearer ${this.authToken}`;
-    }
-
-    return fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(data),
-    });
-  }
-
-  async put(endpoint: string, data: any): Promise<Response> {
-    const url = `${this.baseURL}${endpoint}`;
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    if (this.authToken) {
-      headers.Authorization = `Bearer ${this.authToken}`;
-    }
-
-    return fetch(url, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify(data),
-    });
-  }
-
-  async delete(endpoint: string): Promise<Response> {
-    const url = `${this.baseURL}${endpoint}`;
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    if (this.authToken) {
-      headers.Authorization = `Bearer ${this.authToken}`;
-    }
-
-    return fetch(url, {
-      method: "DELETE",
-      headers,
-    });
-  }
-
   // Health check
   async healthCheck(): Promise<ApiResponse<{ status: string }>> {
     return this.request<{ status: string }>("/health");
   }
+
+  // Test connection (simplified version for mobile)
+  async testConnection(): Promise<boolean> {
+    try {
+      const response = await this.healthCheck();
+      return response.success;
+    } catch {
+      return false;
+    }
+  }
+
+  // Subscription management methods
+  async getUserSubscription(): Promise<ApiResponse<UserSubscriptionInfo>> {
+    return this.request<UserSubscriptionInfo>("/user/subscription");
+  }
+
+  async getUsageStats(): Promise<ApiResponse<UsageStats>> {
+    return this.request<UsageStats>("/user/usage");
+  }
+
+  async getDeviceUsage(deviceId: string): Promise<ApiResponse<any>> {
+    return this.request<any>(`/user/devices/${deviceId}/usage`);
+  }
+
+  async getConnectionSessions(deviceId?: string): Promise<ApiResponse<any[]>> {
+    const endpoint = deviceId
+      ? `/user/devices/${deviceId}/sessions`
+      : "/user/sessions";
+    return this.request<any[]>(endpoint);
+  }
+
+  async startConnectionSession(
+    deviceId: string,
+    serverId: string
+  ): Promise<ApiResponse<any>> {
+    return this.request<any>("/user/sessions", {
+      method: "POST",
+      body: JSON.stringify({ deviceId, serverId }),
+    });
+  }
+
+  async endConnectionSession(
+    sessionId: string,
+    dataStats: { received: number; sent: number }
+  ): Promise<ApiResponse<void>> {
+    return this.request<void>(`/user/sessions/${sessionId}/end`, {
+      method: "PATCH",
+      body: JSON.stringify(dataStats),
+    });
+  }
+
+  // Server management (admin only)
+  async getServerStats(): Promise<ApiResponse<any>> {
+    return this.request<any>("/admin/stats");
+  }
+
+  async getServerInfo(): Promise<ApiResponse<any>> {
+    return this.request<any>("/admin/server-info");
+  }
+
+  async getSubscriptionPlans(): Promise<ApiResponse<any[]>> {
+    return this.request<any[]>("/subscription/plans");
+  }
 }
 
 export const apiClient = new ApiClient();
-export default apiClient;

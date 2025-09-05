@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Alert } from "react-native";
-import { useUser } from "@clerk/clerk-expo";
+import { useUser, useAuth } from "@clerk/clerk-expo";
 import { vpnService, VPNStatus, VPNDevice } from "../services/vpn-service";
 import { VPN_PROTOCOLS } from "../lib/constants";
 
@@ -38,6 +38,7 @@ export interface UseVPNReturn {
 
 export const useVPN = (): UseVPNReturn => {
   const { user, isSignedIn } = useUser();
+  const { getToken } = useAuth();
 
   // State
   const [status, setStatus] = useState<VPNStatus>(vpnService.getStatus());
@@ -54,9 +55,13 @@ export const useVPN = (): UseVPNReturn => {
    * Refresh devices list
    */
   const refreshDevices = useCallback(async (): Promise<void> => {
-    if (!isSignedIn) return;
+    if (!isSignedIn) {
+      console.log("⚠️ User not signed in, skipping device refresh");
+      return;
+    }
 
     try {
+      console.log("🔄 Refreshing devices list...");
       setError(null);
       const userDevices = await vpnService.getDevices();
       setDevices(userDevices);
@@ -66,22 +71,85 @@ export const useVPN = (): UseVPNReturn => {
         (device) => device.status === "ACTIVE"
       );
       setCurrentDevice(activeDevice || null);
+
+      console.log(
+        `✅ Device refresh complete: ${userDevices.length} devices found`
+      );
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load devices";
       setError(errorMessage);
-      console.error("Error refreshing devices:", err);
+      console.error("❌ Error refreshing devices:", err);
+
+      // Provide user-friendly error message
+      if (errorMessage.includes("Network request failed")) {
+        setError(
+          "Cannot connect to VPN backend. Please check your internet connection."
+        );
+      } else if (
+        errorMessage.includes("401") ||
+        errorMessage.includes("Unauthorized")
+      ) {
+        setError("Authentication expired. Please sign in again.");
+      } else if (
+        errorMessage.includes("403") ||
+        errorMessage.includes("Forbidden")
+      ) {
+        setError("Access denied. Please contact support.");
+      }
     }
   }, [isSignedIn]);
 
   // Initialize VPN service when user signs in
   useEffect(() => {
     if (isSignedIn && user) {
-      // For now, we'll handle auth in the API client
-      // The API client will use Clerk's session for authentication
-      console.log("User signed in, VPN service ready");
+      // Set the auth token in the API client
+      const initializeAuth = async () => {
+        try {
+          console.log("🔐 Initializing authentication for VPN service...");
+          const token = await getToken();
+          console.log(
+            `🎫 Token received: ${token ? "Yes" : "No"}${
+              token ? ` (length: ${token.length})` : ""
+            }`
+          );
+          if (token) {
+            // Import API client and set token
+            const { apiClient } = await import("../lib/api-client");
+            apiClient.setAuthToken(token);
+            console.log("✅ User signed in, VPN service ready");
+            console.log(`👤 User ID: ${user.id}`);
+            console.log(
+              `📧 User Email: ${user.primaryEmailAddress?.emailAddress}`
+            );
+
+            // Test API connection
+            const isConnected = await apiClient.testConnection();
+            if (isConnected) {
+              console.log("🌐 API connection successful");
+            } else {
+              console.warn(
+                "⚠️ API connection test failed - backend may be unavailable"
+              );
+              setError(
+                "VPN backend is not responding. Please try again later."
+              );
+            }
+          } else {
+            console.error("❌ No authentication token available");
+            setError("Authentication failed. Please sign in again.");
+          }
+        } catch (error) {
+          console.error("❌ Failed to get auth token:", error);
+          setError(
+            "Authentication error. Please check your connection and try again."
+          );
+        }
+      };
+
+      initializeAuth();
     }
-  }, [isSignedIn, user]);
+  }, [isSignedIn, user, getToken]);
 
   // Subscribe to status changes
   useEffect(() => {

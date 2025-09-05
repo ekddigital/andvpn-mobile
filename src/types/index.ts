@@ -166,3 +166,44 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
     totalPages: number;
   };
 }
+
+// Subscription and Usage Types
+export type SubscriptionStatus = "ACTIVE" | "INACTIVE" | "EXPIRED" | "TRIAL";
+
+export interface Subscription {
+  id: string;
+  userId: string;
+  planType: "FREE" | "BASIC" | "PREMIUM" | "ENTERPRISE";
+  status: SubscriptionStatus;
+  maxDevices: number;
+  currentDevices: number;
+  startDate: Date;
+  endDate: Date;
+  autoRenew: boolean;
+  pricePerMonth: number;
+  currency: string;
+  features: string[];
+}
+
+export interface UsageStats {
+  userId: string;
+  deviceId?: string;
+  totalDataTransferred: number; // in bytes
+  sessionsCount: number;
+  totalConnectionTime: number; // in minutes
+  lastConnectionDate: Date;
+  averageSessionDuration: number; // in minutes
+  topServerLocations: {
+    serverId: string;
+    location: string;
+    usageCount: number;
+  }[];
+}
+
+export interface UserSubscriptionInfo {
+  subscription: Subscription;
+  usage: UsageStats;
+  deviceLimitReached: boolean;
+  daysUntilExpiry: number;
+  canAddDevice: boolean;
+}

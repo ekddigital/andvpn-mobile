@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, ScrollView } from "react-native";
-import { ClerkProvider } from "@clerk/clerk-expo";
+import { StyleSheet, ScrollView, View, TouchableOpacity } from "react-native";
+import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import * as SecureStore from "expo-secure-store";
+import { Ionicons } from "@expo/vector-icons";
 
 import "./global.css";
 
 import { AUTH_CONFIG } from "./src/lib/constants";
 import { VPNConnection } from "./src/components/vpn/VPNConnection";
 import { SplashScreen } from "./src/components/ui/SplashScreenSimple";
+import { AuthFlow } from "./src/screens/auth/AuthFlow";
+import { UserProfileScreen } from "./src/screens/UserProfileScreen";
 
 // Create a token cache for Clerk
 const tokenCache = {
@@ -41,6 +44,43 @@ const queryClient = new QueryClient({
   },
 });
 
+const MainApp: React.FC = () => {
+  const { isSignedIn, isLoaded } = useAuth();
+  const [showProfile, setShowProfile] = useState(false);
+
+  if (!isLoaded) {
+    return <SplashScreen />;
+  }
+
+  if (!isSignedIn) {
+    return <AuthFlow />;
+  }
+
+  if (showProfile) {
+    return <UserProfileScreen onClose={() => setShowProfile(false)} />;
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => setShowProfile(true)}
+        >
+          <Ionicons name="person-circle-outline" size={28} color="#3b82f6" />
+        </TouchableOpacity>
+      </View>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <VPNConnection />
+      </ScrollView>
+      <StatusBar style="auto" />
+    </SafeAreaView>
+  );
+};
+
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -65,18 +105,12 @@ export default function App() {
     <ClerkProvider
       publishableKey={AUTH_CONFIG.clerkPublishableKey}
       tokenCache={tokenCache}
+      signInFallbackRedirectUrl={AUTH_CONFIG.afterSignInUrl}
+      signUpFallbackRedirectUrl={AUTH_CONFIG.afterSignUpUrl}
     >
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
-          <SafeAreaView style={styles.container}>
-            <ScrollView
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <VPNConnection />
-            </ScrollView>
-            <StatusBar style="auto" />
-          </SafeAreaView>
+          <MainApp />
         </SafeAreaProvider>
       </QueryClientProvider>
     </ClerkProvider>
@@ -87,6 +121,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
+  },
+  profileButton: {
+    padding: 8,
   },
   scrollContent: {
     flexGrow: 1,
